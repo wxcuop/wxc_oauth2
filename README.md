@@ -209,10 +209,3 @@ function testExchangeAuthorizationCode() {
 
 This project is licensed under the MIT License.
 
----
-
-Feel free to use this README.md file as a starting point for your GitHub repository! Let me know if you need additional details or clarifications!
-
-Citations:
-[1] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/21056446/f90f4d21-cb0d-40d5-bc44-7fc7492f9ce1/paste.txt
-[2] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/21056446/c5e89714-17b6-42ae-86bc-d8a4352a601d/paste-2.txt
