@@ -1,7 +1,3 @@
-Here’s the updated **README.md** file for your repository, now including a section for the **Config Sheet** where the `gas_url` (Google Apps Script Web App URL) is stored.
-
----
-
 # OAuth2 Provider Implementation in Google Apps Script
 
 This repository contains a Google Apps Script implementation of an OAuth2 provider with support for **client_secret** (confidential clients) and **PKCE** (public clients). The provider includes endpoints for application registration, user authentication, authorization code generation, and token exchange.
