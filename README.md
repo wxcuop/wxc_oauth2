@@ -1,3 +1,7 @@
+Here’s the updated **README.md** file for your repository, now including a section for the **Config Sheet** where the `gas_url` (Google Apps Script Web App URL) is stored.
+
+---
+
 # OAuth2 Provider Implementation in Google Apps Script
 
 This repository contains a Google Apps Script implementation of an OAuth2 provider with support for **client_secret** (confidential clients) and **PKCE** (public clients). The provider includes endpoints for application registration, user authentication, authorization code generation, and token exchange.
@@ -21,8 +25,8 @@ This repository contains a Google Apps Script implementation of an OAuth2 provid
 4. **Logging**:
    - Logs important events and errors to a `Logs` sheet for debugging purposes.
 
-5. **Testing Functions**:
-   - Includes test functions for user login and token exchange.
+5. **Configurable Web App URL (`gas_url`)**:
+   - Uses a `Config` sheet to dynamically retrieve the Web App URL (`gas_url`) for form submissions.
 
 ---
 
@@ -61,6 +65,18 @@ Records logs for debugging purposes.
 | Timestamp           | Message                          | Details                                      |
 |---------------------|----------------------------------|---------------------------------------------|
 | 2024-12-28 00:00:00 | Starting handleLogin...          | {"username":"user@example.com"}             |
+
+---
+
+### 5. **Config Sheet**
+Stores configuration values such as the Web App URL (`gas_url`).
+
+| Key      | Value                                                   |
+|----------|---------------------------------------------------------|
+| gas_url  | https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec |
+
+- The `gas_url` is retrieved dynamically in the script to ensure form submissions point to the correct Web App URL.
+- Update the value of `gas_url` whenever you deploy a new version of your script.
 
 ---
 
@@ -166,6 +182,11 @@ curl -X POST \
    - `verifyLoginPassword(username, password)`: Verifies user credentials.
    - `generateUUID()`: Generates unique identifiers.
    - `logToSheet(message, details)`: Logs events to the Logs sheet.
+   - Dynamically retrieves the Web App URL from the Config sheet using:
+     ```javascript
+     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+     const gasUrl = sheet.getRange("A2").getValue();
+     ```
 
 ---
 
@@ -173,7 +194,7 @@ curl -X POST \
 
 1. Open the Google Apps Script editor.
 2. Paste the code into a new project (`Code.gs`).
-3. Create the required sheets (`Clients`, `Tokens`, `Users`, `Logs`) in your Google Spreadsheet.
+3. Create the required sheets (`Clients`, `Tokens`, `Users`, `Logs`, and `Config`) in your Google Spreadsheet.
 4. Deploy as a Web App:
    - Go to `Deploy > New Deployment`.
    - Select `Web app`.
