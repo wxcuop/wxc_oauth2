@@ -1,229 +1,87 @@
-# OAuth2 Provider Implementation in Google Apps Script
+# wxc_oauth2
 
-This repository contains a Google Apps Script implementation of an OAuth2 provider with support for **client_secret** (confidential clients) and **PKCE** (public clients). The provider includes endpoints for application registration, user authentication, authorization code generation, token exchange, and token validation.
-
----
+## Overview
+`wxc_oauth2` is a Google Apps Script-based implementation of an OAuth 2.0 server. It provides essential operations for handling application registration, user login, token exchange, and token validation. The project is designed to integrate with Google Sheets for managing client registrations, tokens, and logs.
 
 ## Features
+- **OAuth 2.0 Authorization Code Flow**:
+  - Application registration
+  - User authentication
+  - Authorization code issuance
+  - Token exchange with PKCE support
+- **Token Validation**: Validate access tokens for expiration and validity.
+- **Google Sheets Integration**: Use Google Sheets to manage:
+  - Registered clients
+  - Issued tokens
+  - Logs for debugging and monitoring
 
-1. **Application Registration**:
-   - Allows external applications to register and receive a `client_id` and `client_secret`.
-   - Stores app details in the `Clients` sheet.
+## Prerequisites
+1. A Google account with access to Google Drive and Google Sheets.
+2. A Google Apps Script project linked to a spreadsheet containing the following sheets:
+   - **Clients**: For storing client ID, secret, app name, and redirect URI.
+   - **Tokens**: For storing authorization codes, access tokens, and metadata.
+   - **UserScopes**: For mapping users to clients and allowed scopes.
+   - **Users**: For user credentials (username and password).
+   - **Logs**: For logging operations.
 
-2. **Authorization Flow**:
-   - Supports both **client_secret** and **PKCE**.
-   - Generates authorization codes and redirects users to the specified redirect URI.
+## Setup
+1. Create a new Google Sheet and add the required sheets (`Clients`, `Tokens`, `UserScopes`, `Users`, `Logs`).
+2. Copy the provided Apps Script code into the script editor of the spreadsheet.
+3. Deploy the script as a web app:
+   - Go to **Extensions > Apps Script > Deploy > New Deployment**.
+   - Select "Web app" and set appropriate permissions.
 
-3. **Token Exchange**:
-   - Exchanges authorization codes for access tokens.
-   - Validates both `client_secret` (for confidential clients) and `code_verifier` (for PKCE).
+## API Endpoints
 
-4. **Token Validation**:
-   - Allows REST services to validate tokens via a `/validate_token` endpoint.
+### `doGet(e)`
+Handles GET requests.
 
-5. **Logging**:
-   - Logs important events and errors to a `Logs` sheet for debugging purposes.
+- **Operation: `auth`**
+  - Initiates the authorization process by verifying client details and redirecting users to log in.
 
-6. **Configurable Web App URL (`gas_url`)**:
-   - Uses a `Config` sheet to dynamically retrieve the Web App URL (`gas_url`) for form submissions.
+### `doPost(e)`
+Handles POST requests.
 
----
+- **Operation: `register`**
+  - Registers a new application by generating a client ID and secret.
+- **Operation: `login`**
+  - Authenticates a user and issues an authorization code.
+- **Operation: `token`**
+  - Exchanges an authorization code for an access token.
+- **Operation: `validate_token`**
+  - Validates an access token for expiration or misuse.
 
-## Sheets Setup
+## Key Functions
 
-### 1. **Clients Sheet**
-Stores registered applications.
+### Application Registration (`handleAppRegistration`)
+Registers a new application by:
+- Generating a unique client ID and secret.
+- Storing them in the `Clients` sheet.
 
-| Client ID     | Client Secret       | App Name         | Redirect URI           |
-|---------------|---------------------|------------------|------------------------|
-| client_12345  | secret_67890        | My Test App       | http://localhost/callback |
+### Authorization Request (`handleAuthorizationRequest`)
+Handles the first step of OAuth 2.0 by:
+- Verifying client ID and redirect URI.
+- Issuing an authorization code with optional PKCE support.
 
----
+### Token Exchange (`exchangeAuthorizationCodeForToken`)
+Exchanges an authorization code for an access token while supporting PKCE verification.
 
-### 2. **Tokens Sheet**
-Tracks issued authorization codes, access tokens, and PKCE-related fields.
+### Token Validation (`validateAccessToken`)
+Validates whether an access token is still valid or has expired.
 
-| Authorization Code | Access Token       | Timestamp               | Code Challenge         | Code Challenge Method | Client ID     |
-|---------------------|--------------------|--------------------------|------------------------|-----------------------|---------------|
-| auth_code_123       | access_token_abc  | 2024-12-28T00:00:00Z     | hashed_code_challenge  | S256                 | client_12345 |
+### User Login (`handleLogin`)
+Authenticates users using credentials stored in the `Users` sheet.
 
----
+## Testing
+The script includes test functions for verifying core functionality:
+- Test user login (`testUserLogin`)
+- Test application registration (`testAppRegistration`)
+- Test authorization request (`testHandleAuthorizationRequest`)
+- Test token exchange (`testExchangeAuthorizationCode`)
+- Test token validation (`testValidateAccessToken`)
 
-### 3. **Users Sheet**
-Stores user credentials for authentication.
+## Logs
+All operations are logged in the `Logs` sheet for debugging and monitoring purposes.
 
-| Username            | Password          |
-|----------------------|-------------------|
-| user@example.com     | password123       |
-
----
-
-### 4. **Logs Sheet**
-Records logs for debugging purposes.
-
-| Timestamp           | Message                          | Details                                      |
-|---------------------|----------------------------------|---------------------------------------------|
-| 2024-12-28 00:00:00 | Starting handleLogin...          | {"username":"user@example.com"}             |
-
----
-
-### 5. **Config Sheet**
-Stores configuration values such as the Web App URL (`gas_url`).
-
-| Key      | Value                                                   |
-|----------|---------------------------------------------------------|
-| gas_url  | https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec |
-
-- The `gas_url` is retrieved dynamically in the script to ensure form submissions point to the correct Web App URL.
-- Update the value of `gas_url` whenever you deploy a new version of your script.
-
----
-
-## Endpoints
-
-### 1. Application Registration (`/register`)
-Registers a new application with the OAuth2 provider.
-
-#### Request
-```bash
-curl -X POST \
--d "operation=register" \
--d "app_name=My Test App" \
--d "redirect_uri=http://localhost/callback" \
-"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-```
-
-#### Response
-```json
-{
-  "client_id": "generated_client_id",
-  "client_secret": "generated_client_secret",
-  "redirect_uri": "http://localhost/callback",
-  "message": "Application registered successfully"
-}
-```
-
----
-
-### 2. Authorization Request (`/auth`)
-Generates an authorization code for a registered application.
-
-#### Request
-```bash
-curl -X GET \
-"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?operation=auth&client_id=client_12345&redirect_uri=http://localhost/callback&response_type=code&code_challenge=HASHED_CODE_CHALLENGE&code_challenge_method=S256"
-```
-
-#### Response
-Redirects the user to:
-```
-http://localhost/callback?code=auth_code_123
-```
-
----
-
-### 3. Token Exchange (`/token`)
-Exchanges an authorization code for an access token.
-
-#### Request with `client_secret`:
-```bash
-curl -X POST \
--d "operation=token" \
--d "client_id=client_12345" \
--d "client_secret=secret_67890" \
--d "code=auth_code_123" \
-"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-```
-
-#### Request with PKCE:
-```bash
-curl -X POST \
--d "operation=token" \
--d "client_id=client_12345" \
--d "code=auth_code_123" \
--d "code_verifier=ORIGINAL_CODE_VERIFIER" \
-"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-```
-
-#### Response
-```json
-{
-  "access_token": "generated_access_token",
-  "token_type": "Bearer",
-  "expires_in": 3600
-}
-```
-
----
-
-### 4. Token Validation (`/validate_token`)
-Validates an access token sent by a REST service or client application.
-
-#### Request
-```bash
-curl -X POST \
--d "operation=validate_token" \
--d "token=<access_token>" \
-"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-```
-
-#### Response (Valid Token)
-```json
-{
-  "valid": true,
-  "message": "Token is valid"
-}
-```
-
-#### Response (Invalid Token)
-```json
-{
-  "valid": false,
-  "message": "Invalid or expired token"
-}
-```
-
----
-
-## Functions Overview
-
-### Core Functions
-1. `handleAppRegistration(e)`:
-   - Registers applications and generates `client_id` and `client_secret`.
-
-2. `handleAuthorizationRequest(e)`:
-   - Validates client credentials.
-   - Generates an authorization code.
-   - Redirects to the specified redirect URI.
-
-3. `exchangeAuthorizationCodeForToken(e)`:
-   - Validates authorization codes.
-   - Issues access tokens.
-   - Supports both `client_secret` and PKCE validation.
-
-4. `validateAccessToken(e)`:
-   - Validates access tokens against the Tokens sheet.
-
-5. Helper Functions:
-   - `verifyClientIdRedirectURI(clientId, redirectUri)`: Validates client credentials.
-   - `verifyLoginPassword(username, password)`: Verifies user credentials.
-   - `generateUUID()`: Generates unique identifiers.
-   - `logToSheet(message, details)`: Logs events to the Logs sheet.
-   - Dynamically retrieves the Web App URL from the Config sheet using:
-     ```javascript
-     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
-     const gasUrl = sheet.getRange("A2").getValue();
-     ```
-
----
-
-## Deployment Instructions
-
-1. Open the Google Apps Script editor.
-2. Paste the code into a new project (`Code.gs`).
-3. Create the required sheets (`Clients`, `Tokens`, `Users`, `Logs`, and `Config`) in your Google Spreadsheet.
-4. Deploy as a Web App:
-   - Go to `Deploy > New Deployment`.
-   - Select `Web app`.
-   - Set permissions to `"Anyone with the link"`.
-
+## License
+This project is licensed under the MIT License.
