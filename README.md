@@ -1,6 +1,6 @@
 # OAuth2 Provider Implementation in Google Apps Script
 
-This repository contains a Google Apps Script implementation of an OAuth2 provider with support for **client_secret** (confidential clients) and **PKCE** (public clients). The provider includes endpoints for application registration, user authentication, authorization code generation, and token exchange.
+This repository contains a Google Apps Script implementation of an OAuth2 provider with support for **client_secret** (confidential clients) and **PKCE** (public clients). The provider includes endpoints for application registration, user authentication, authorization code generation, token exchange, and token validation.
 
 ---
 
@@ -18,10 +18,13 @@ This repository contains a Google Apps Script implementation of an OAuth2 provid
    - Exchanges authorization codes for access tokens.
    - Validates both `client_secret` (for confidential clients) and `code_verifier` (for PKCE).
 
-4. **Logging**:
+4. **Token Validation**:
+   - Allows REST services to validate tokens via a `/validate_token` endpoint.
+
+5. **Logging**:
    - Logs important events and errors to a `Logs` sheet for debugging purposes.
 
-5. **Configurable Web App URL (`gas_url`)**:
+6. **Configurable Web App URL (`gas_url`)**:
    - Uses a `Config` sheet to dynamically retrieve the Web App URL (`gas_url`) for form submissions.
 
 ---
@@ -153,11 +156,36 @@ curl -X POST \
 
 ---
 
-## Functions Overview
+### 4. Token Validation (`/validate_token`)
+Validates an access token sent by a REST service or client application.
 
-### Main Entry Points
-- `doGet(e)`: Handles GET requests (e.g., `/auth`).
-- `doPost(e)`: Handles POST requests (e.g., `/register`, `/login`, `/token`).
+#### Request
+```bash
+curl -X POST \
+-d "operation=validate_token" \
+-d "token=<access_token>" \
+"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+```
+
+#### Response (Valid Token)
+```json
+{
+  "valid": true,
+  "message": "Token is valid"
+}
+```
+
+#### Response (Invalid Token)
+```json
+{
+  "valid": false,
+  "message": "Invalid or expired token"
+}
+```
+
+---
+
+## Functions Overview
 
 ### Core Functions
 1. `handleAppRegistration(e)`:
@@ -173,7 +201,10 @@ curl -X POST \
    - Issues access tokens.
    - Supports both `client_secret` and PKCE validation.
 
-4. Helper Functions:
+4. `validateAccessToken(e)`:
+   - Validates access tokens against the Tokens sheet.
+
+5. Helper Functions:
    - `verifyClientIdRedirectURI(clientId, redirectUri)`: Validates client credentials.
    - `verifyLoginPassword(username, password)`: Verifies user credentials.
    - `generateUUID()`: Generates unique identifiers.
@@ -195,34 +226,4 @@ curl -X POST \
    - Go to `Deploy > New Deployment`.
    - Select `Web app`.
    - Set permissions to `"Anyone with the link"`.
-
----
-
-## Testing
-
-### Test User Login
-Use the test function to verify user login functionality:
-```javascript
-function testUserLogin() {
-    const testUsername = "user@example.com";
-    const testPassword = "password123";
-    const result = verifyLoginPassword(testUsername, testPassword);
-    logToSheet(`User login result: ${result ? "Success" : "Failure"}`);
-}
-```
-
-### Test Token Exchange
-Use the test function to simulate token exchange:
-```javascript
-function testExchangeAuthorizationCode() {
-    const testAuthCode = "auth_code_123";
-    exchangeAuthorizationCodeForToken({ parameter: { code: testAuthCode } });
-}
-```
-
----
-
-## License
-
-This project is licensed under the MIT License.
 
