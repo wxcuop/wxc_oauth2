@@ -1,4 +1,4 @@
-// Project: wxc_oauth2
+// Project: https://github.com/wxcuop/wxc_oauth2
 // License: MIT
 // Main entry points for handling GET and POST requests
 function doGet(e) {
