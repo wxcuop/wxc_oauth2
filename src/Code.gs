@@ -17,9 +17,12 @@ function doPost(e) {
     return handleAppRegistration(e); // Handles application registration
   } else if (operation === "login") {
     return handleLogin(e); // Handles user login
-  } else if (operation === "token" || grantType === "authorization_code") {
+  } else if (operation === "token") {
     return exchangeAuthorizationCodeForToken(e); // Handles token exchange
+  } else if (operation === "validate_token") { // New operation for token validation
+    return validateAccessToken(e);
   }
+
 
   return ContentService.createTextOutput("Invalid operation").setMimeType(ContentService.MimeType.TEXT);
 }
@@ -182,6 +185,50 @@ function exchangeAuthorizationCodeForToken(e) {
   }
 }
 
+
+// Validate access token (Step 4 of OAuth2)
+function validateAccessToken(e) {
+  const token = e.parameter.token;
+
+  if (!token) {
+    logToSheet(`Missing token: ${e}`);
+    return ContentService.createTextOutput(JSON.stringify({
+      valid: false,
+      message: "Missing token"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Tokens");
+    if (!sheet) {
+      throw new Error("Tokens sheet not found.");
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) { // Skip header row
+      if (data[i][1] === token) { // Column B: Access Token
+        logToSheet(`Token is valid: ${token}`);
+        return ContentService.createTextOutput(JSON.stringify({
+          valid: true,
+          message: "Token is valid"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    logToSheet(`Invalid or expired token: ${token}`);
+    return ContentService.createTextOutput(JSON.stringify({
+      valid: false,
+      message: "Invalid or expired token"
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    logToSheet(`Error in validateAccessToken: ${error.message}`);
+    Logger.log(`Error in validateAccessToken: ${error.message}`);
+    return ContentService.createTextOutput(JSON.stringify({
+      valid: false,
+      message: "Internal server error"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
 
 // Helper function to verify client ID and redirect URI
